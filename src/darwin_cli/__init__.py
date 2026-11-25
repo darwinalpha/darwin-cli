@@ -56,7 +56,7 @@ from darwin_cli.loader import (
 from darwin_cli.parser import build_parser, parse_args_with_meta
 from darwin_cli.validator import Validator, create_validator
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 __all__ = [
     # core

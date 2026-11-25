@@ -1,6 +1,6 @@
 [project]
 name = "darwin-cli"
-version = "0.2.2"
+version = "0.3.0"
 description = "Declaration-driven CLI engine with dynamic params, dependency inference and config-file constraints"
 readme = "README.md"
 authors = [
