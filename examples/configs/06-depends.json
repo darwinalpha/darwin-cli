@@ -1,0 +1,17 @@
+{
+  "prog": "06-depends.py",
+  "help": "depends_on ordering and value expansion",
+  "cli_args": {
+    "report": {
+      "type": "str",
+      "action": "build_report",
+      "depends_on": ["year"],
+      "help": "Report label (computed from expanded dates)"
+    },
+    "year": {
+      "type": "str",
+      "action": "expand_year",
+      "help": "Year to expand into start_date / end_date"
+    }
+  }
+}

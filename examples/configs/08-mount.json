@@ -1,0 +1,30 @@
+{
+  "fetcher": {
+    "cli": {
+      "prog": "08-mount.py",
+      "help": "Select a sub-tree with mount; also works with darwin-config",
+      "cli_args": {
+        "type": {
+          "type": "str",
+          "required": true,
+          "help": "Data type"
+        },
+        "output": {
+          "type": "str",
+          "default": "out.csv",
+          "help": "Output path"
+        },
+        "stdout": {
+          "type": "bool",
+          "help": "Write to stdout instead of a file"
+        }
+      },
+      "constraints": [
+        {
+          "rule": "mutually_exclusive",
+          "params": ["output", "stdout"]
+        }
+      ]
+    }
+  }
+}

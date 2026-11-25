@@ -1,0 +1,19 @@
+{
+  "prog": "02-inference.py",
+  "help": "Infer --source from --type when the user omits it",
+  "cli_args": {
+    "type": {
+      "type": "str",
+      "required": true,
+      "help": "Data type",
+      "validation": {
+        "choices": ["stock_daily", "stock_hist"]
+      }
+    },
+    "source": {
+      "type": "str",
+      "action": "guess_source",
+      "help": "Data source (inferred by default)"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "prog": "07-help.py",
+  "help": "Context-aware help: --help runs last",
+  "cli_args": {
+    "type": {
+      "type": "str",
+      "required": true,
+      "action": "load_dynamic_params",
+      "depends_on": ["source"],
+      "help": "Data type"
+    },
+    "source": {
+      "type": "str",
+      "action": "guess_source",
+      "help": "Data source"
+    }
+  }
+}

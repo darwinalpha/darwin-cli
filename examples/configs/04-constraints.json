@@ -1,0 +1,70 @@
+{
+  "prog": "04-constraints.py",
+  "help": "Five built-in cross-parameter rules expressed in config",
+  "cli_args": {
+    "date": {
+      "type": "str",
+      "help": "Single date"
+    },
+    "year": {
+      "type": "str",
+      "help": "Whole year"
+    },
+    "user": {
+      "type": "str",
+      "help": "Username"
+    },
+    "token": {
+      "type": "str",
+      "help": "API token"
+    },
+    "type": {
+      "type": "str",
+      "help": "Data type"
+    },
+    "source": {
+      "type": "str",
+      "help": "Data source"
+    },
+    "file": {
+      "type": "str",
+      "help": "Local file"
+    },
+    "window": {
+      "type": "str",
+      "help": "Rolling window"
+    },
+    "start_date": {
+      "type": "str",
+      "help": "Range start"
+    },
+    "end_date": {
+      "type": "str",
+      "help": "Range end"
+    }
+  },
+  "constraints": [
+    {
+      "rule": "mutually_exclusive",
+      "params": ["date", "year"]
+    },
+    {
+      "rule": "together",
+      "params": ["user", "token"]
+    },
+    {
+      "rule": "requires",
+      "param": "type",
+      "requires": "source"
+    },
+    {
+      "rule": "exclusive_with",
+      "param": "window",
+      "group": ["start_date", "end_date"]
+    },
+    {
+      "rule": "at_least_one",
+      "params": ["source", "file"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+[project]
+name = "darwin-cli"
+version = "0.1.0"
+description = "Declaration-driven CLI engine with dynamic params, dependency inference and config-file constraints"
+readme = "README.md"
+authors = [
+    { name = "darwinalpha", email = "13301807038@126.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[build-system]
+requires = ["uv_build>=0.13.10,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v"

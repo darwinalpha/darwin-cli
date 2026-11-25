@@ -1,0 +1,16 @@
+{
+  "prog": "01-basic.py",
+  "help": "Minimal CLI: two static parameters",
+  "cli_args": {
+    "name": {
+      "type": "str",
+      "required": true,
+      "help": "Name to greet"
+    },
+    "count": {
+      "type": "int",
+      "default": 1,
+      "help": "Number of greetings"
+    }
+  }
+}
