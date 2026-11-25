@@ -452,6 +452,8 @@ executor、help、app、constraints、registry、来源跟踪、环检测、配�
 
 > `examples/` 里的样本由集成测试覆盖，因此它们始终是"可执行的文档"。
 
+> 发布新版本的操作步骤见[发布指南](docs/releasing.cn.md)。
+
 ## 8. 许可
 
 MIT

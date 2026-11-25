@@ -487,6 +487,8 @@ under `examples/`). All error-message assertions are in English.
 Samples in `examples/` are covered by integration tests, so they stay
 executable documentation.
 
+> Publishing a new version: see the [release guide](docs/releasing.md).
+
 ## 8. License
 
 MIT
