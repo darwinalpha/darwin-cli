@@ -52,7 +52,10 @@ def _default_message(constraint: Constraint, given: List[str], missing: List[str
     if rule == "requires":
         return f"Parameter --{constraint.param} requires --{constraint.requires}"
     if rule == "exclusive_with":
-        return f"Parameter --{constraint.param} is exclusive with {given}"
+        # ``given`` starts with the subject itself (see check_constraint), so
+        # show only the *other* parameters that actually conflicted.
+        others = given[1:] if given and given[0] == constraint.param else given
+        return f"Parameter --{constraint.param} is exclusive with {others}"
     if rule == "at_least_one":
         return f"At least one of {constraint.params} must be provided"
     return f"Constraint '{rule}' violated"

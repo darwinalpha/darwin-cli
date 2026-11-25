@@ -23,6 +23,7 @@ python examples/demo.py
 | 06 | `configs/06-depends.json` | `depends_on` 重排处理顺序；`ActionResult(values=...)` 一个输入展开成多个值 | `--year 2026` |
 | 07 | `configs/07-help.json` | 上下文帮助：裸 `--help` 与推断后的场景帮助 | `--type stock_daily --help` |
 | 08 | `configs/08-mount.json` | `mount` 选取配置子树；默认值不会触发约束 | `--type stock_daily --output a.csv --stdout` |
+| 09 | `configs/09-groups.json` | 嵌套 group、参数一对一内联关系、group↔group / group↔param 关系 | `--date d` |
 
 `actions.py` 存放 02/03/06/07 用到的四个 Action 函数。构造 app 前调用
 `actions.register_all()`（或 `register_all(registry)`）；它是幂等的，因此在
@@ -58,6 +59,9 @@ python examples/demo.py
   JSON 无法表达函数，所以配置文件里只能写名字。
 - `validation` 或字典形式的 `type` 会转成 `ValidationRule`。
 - `constraints` 可选，五条规则见主 README。
+- `groups` 可选，用于声明嵌套参数组及组间关系（见主 README 4.9 节与
+  `configs/09-groups.json`）。
+- param 内联关系是一对一：只写单个参数名，不能是列表，也不能引用 `@组`。
 - `prog` / `help` 可选，用于生成帮助文本。
 
 ## 参数声明的三种等价写法

@@ -6,7 +6,8 @@
 
 - **核心零第三方依赖**，只用 Python 标准库
 - 一套 DSL 覆盖全部：静态参数、Action、动态参数、依赖排序、校验、跨参数关系约束
-- **配置文件驱动**：`CliApp.from_config()` 从 JSON、字典或任意 loader 回调读取 `cli_args` / `constraints`
+- **配置文件驱动**：`CliApp.from_config()` 从 JSON、字典或任意 loader 回调读取 `cli_args` / `groups` / `constraints`
+- **声明式 group**：参数可嵌套成组，关系直接写在配置里，加载期编译成普通约束
 - **可选的 darwin-config 适配器**，把参数声明放进分层配置文件（见第 6 节）
 - **小而稳定的 API**：`CliApp`、`Param`、`ActionResult`、`CliResult`、`register_action` 加少量辅助函数
 
@@ -103,7 +104,7 @@ print(result.outcome, result.data)
 `--source` 是推断出来的，`symbol` / `fields` 在开始解析时并不存在，`--date` 和
 `--year` 不能同时出现——这些都不需要在 `main()` 里写 `if/else`。
 
-> `examples/` 下有 8 个可运行场景和一个演示脚本。在仓库根目录运行
+> `examples/` 下有 9 个可运行场景和一个演示脚本。在仓库根目录运行
 > `python examples/demo.py`。
 
 ---
@@ -122,6 +123,7 @@ print(result.outcome, result.data)
 | `action` | 名字或 `Callable(value, ctx)` | 已注册的 Action 名，或直接传函数 |
 | `validation` | `ValidationRule` | `type` 为字符串时的附加规则 |
 | `depends_on` | `list[str]` | 必须先于本参数处理的参数名 |
+| `mutually_exclusive` / `together` / `at_least_one` / `exclusive_with` / `requires` | `str`（可选） | 一对一内联关系，只命名另一个参数；加载期编译成约束（见 4.9 节） |
 
 ### `ValidationRule` 字段
 
@@ -180,6 +182,7 @@ app = CliApp(
     custom_validators={"even": lambda v: ...},
     available_sources=["tushare", "yahoo"],  # 列在全局帮助里
     constraints=[...],
+    groups={...},                         # 可选的 group 声明（见 4.9 节）
     registry=ActionRegistry(),            # 省略则用全局注册表
 )
 ```
@@ -197,7 +200,7 @@ app = CliApp.from_config("settings.json", mount="fetcher.cli")  # 取子树
 ```
 
 `mount` 先按点分路径钻进加载后的字典，再提取 `cli_args`（或 `params`）、
-`constraints`、`prog` 和 `help`。`loader` 是任意"把字符串转成 dict"的可调用对象；
+`groups`、`constraints`、`prog` 和 `help`。`loader` 是任意"把字符串转成 dict"的可调用对象；
 不传时字符串被当作 JSON 文件路径。
 
 ### `run(args=None)` 与 `run_or_exit(args=None)`
@@ -268,7 +271,8 @@ meta["count"].from_source       # 'cli'
 parser = build_parser(params, prog="fetch.py")
 ```
 
-`parse_params_from_config`、`parse_constraints`、`merge_params`、
+`parse_params_from_config`、`parse_constraints`、`compile_constraints`、
+`resolve_groups`、`validate_param_definitions`、`merge_params`、
 `params_to_dict`、`get_param_by_name`、`check_constraint`、`check_constraints`
 也都导出，方便构建自定义前端。
 
@@ -366,6 +370,66 @@ Options:
 就能让同一进程里的多个 app 不因 Action 重名而冲突。省略时保持经典的
 `@register_action("name")` 写法。
 
+### 4.9 用 group 表达成组关系
+
+`@名字` 是**"扁平参数名列表"的宏**。group 在加载期展开、编译成普通的
+`Constraint` 对象——运行时完全不需要"组"这个概念。三层声明刻意分开：
+
+| 层 | 写在哪 | 表达什么 |
+| --- | --- | --- |
+| 一对一内联 | `cli_args` 内 | 恰好两个参数之间的关系 |
+| **(a)** 组内关系 | `groups` 里写 `true` | 多个参数之间的关系——**必须先定义 group** |
+| **(b)** group 与第三者 | `groups` 里写列表 | 一个 group 与另一个 group / 某个参数的关系 |
+| 顶层 `constraints` | `constraints` 段 | 保持原样，仍可用自定义 `message` / `include_generated` |
+
+```json
+{
+  "cli_args": {
+    "date":       { "type": "str" },
+    "start_date": { "type": "str", "together": "end_date" },
+    "end_date":   { "type": "str" },
+    "year":       { "type": "str" },
+    "window":     { "type": "str" }
+  },
+  "groups": {
+    "@sedate": ["start_date", "end_date"],
+    "@instant": ["date", "window"],
+    "@date_range": {
+      "members": ["@sedate", "year"],
+      "exclusive_with": ["@instant"]
+    },
+    "@dates": {
+      "members": ["@instant", "@date_range"],
+      "at_least_one": true
+    }
+  }
+}
+```
+
+语法约定：
+
+- **内联关系是一对一**：值只能是单个参数名（`"together": "end_date"`），
+  不能是列表，也不能是 `@group`。未知字段、列表值、`group` 字段、以及 param
+  定义里任何 `@` 引用都是**加载期错误**——拼错不会悄悄让规则失效。
+- **`groups` 是成员与组级关系的唯一真相来源**。组可以是**列表**（纯成员）
+  或**字典**（`members` 加规则）。`members` 可嵌套其它 `@组`，同一个参数可以
+  属于多个组。组环（含自环）、未定义组名、空组都会报出真实路径。
+- **`true` = (a)**：对本组成员生成一条 N 元规则。
+- **列表 = (b)**：本组与第三者的关系。目标可混写 `@组名` 与参数名；编译器
+  展开后剔除主体自身，再为每个成员生成一条规则。`exclusive_with` /
+  `requires` 最适合这一层。
+- **`@` 在所有位置都会展开**：`members`、关系目标、顶层
+  `constraints.params` / `group`。展开结果始终是扁平的参数名列表。
+- `at_least_one` 排在最后执行：它是兜底提示，而引擎只报第一条违规。
+
+用 `Param` 对象构造时，`CliApp(..., groups=...)` 接受同样的字典；
+`from_config()` 会从（可经 `mount` 选取的）配置里读取该段。
+
+**常见设计误区**：让父组与自己的子组建立排斥关系，展开后会自相矛盾——成员
+彼此成了排斥目标。库会忠实执行你写下的关系；如何划分组、把关系放在哪一层，
+是配置作者的决定。请把关系写在两侧不相交的层级上。依赖**取值**的条件、
+运行时才存在的参数、需要外部状态的判断，仍然用 Action。
+
 ---
 
 ## 5. 执行流水线与优先级
@@ -446,7 +510,7 @@ pytest tests -q
 ```
 
 测试分为 `tests/unit/`（按模块划分：base、actions、loader、parser、validator、
-executor、help、app、constraints、registry、来源跟踪、环检测、配置对接）与
+executor、help、app、constraints、registry、来源跟踪、环检测、配置对接、groups）与
 `tests/integration/`（端到端抓取流程、复杂链式，以及 `test_examples.py`——它会
 执行 `examples/` 下的每一个配置）。所有错误文案断言均为英文。
 

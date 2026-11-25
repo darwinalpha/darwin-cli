@@ -55,6 +55,10 @@ class Param:
         action: registered action name, or Callable(value, current_args) -> result
         validation: rule object when ``type`` is a string
         depends_on: names that must be processed before this parameter
+        mutually_exclusive / together / at_least_one / exclusive_with /
+        requires: optional one-to-one relations, each naming a single other
+            parameter. They are compiled into ``Constraint`` objects at load
+            time; group-level relations belong in the ``groups`` config section.
     """
 
     name: str
@@ -65,6 +69,11 @@ class Param:
     action: Optional[Union[str, Callable]] = None
     validation: Optional[ValidationRule] = None
     depends_on: Optional[List[str]] = None
+    mutually_exclusive: Optional[str] = None
+    together: Optional[str] = None
+    at_least_one: Optional[str] = None
+    exclusive_with: Optional[str] = None
+    requires: Optional[str] = None
 
 
 @dataclass

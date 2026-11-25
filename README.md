@@ -10,8 +10,10 @@ config file if you want.
 - **Zero third-party dependencies in the core** — only the Python standard library
 - One DSL for everything: static params, Actions, dynamic params, dependency
   ordering, validation, and cross-parameter constraints
-- **Config-file driven**: `CliApp.from_config()` reads `cli_args` / `constraints`
-  from JSON, a dict, or any loader callback
+- **Config-file driven**: `CliApp.from_config()` reads `cli_args` / `groups` /
+  `constraints` from JSON, a dict, or any loader callback
+- **Declarative groups**: nest parameter groups and declare relations in config;
+  they compile into ordinary constraints at load time
 - **Optional darwin-config adapter** for keeping params in a layered config file
   (see section 6)
 - A **small, stable API**: `CliApp`, `Param`, `ActionResult`, `CliResult`,
@@ -111,7 +113,7 @@ print(result.outcome, result.data)
 and `--date` / `--year` cannot both be used — none of that required an
 `if/else` in `main()`.
 
-> `examples/` contains 8 runnable scenarios with a demo script. Run
+> `examples/` contains 9 runnable scenarios with a demo script. Run
 > `python examples/demo.py` from the repository root.
 
 ---
@@ -130,6 +132,7 @@ and `--date` / `--year` cannot both be used — none of that required an
 | `action` | name or `Callable(value, ctx)` | Registered Action name, or a function directly |
 | `validation` | `ValidationRule` | Extra rules when `type` is a string |
 | `depends_on` | `list[str]` | Parameters that must be processed before this one |
+| `mutually_exclusive` / `together` / `at_least_one` / `exclusive_with` / `requires` | `str` (optional) | One-to-one inline relation naming a single other parameter; compiled at load time (see section 4.9) |
 
 ### `ValidationRule` fields
 
@@ -191,6 +194,7 @@ app = CliApp(
     custom_validators={"even": lambda v: ...},
     available_sources=["tushare", "yahoo"],  # listed in global help
     constraints=[...],
+    groups={...},                         # optional group declarations (section 4.9)
     registry=ActionRegistry(),            # omit for the global registry
 )
 ```
@@ -208,7 +212,7 @@ app = CliApp.from_config("settings.json", mount="fetcher.cli")  # nested section
 ```
 
 `mount` walks a dotted path into the loaded dict before extracting `cli_args`
-(or `params`), `constraints`, `prog` and `help`. `loader` is any callable that
+(or `params`), `groups`, `constraints`, `prog` and `help`. `loader` is any callable that
 turns the string into a dict; without one, the string is treated as a JSON path.
 
 ### `run(args=None)` and `run_or_exit(args=None)`
@@ -280,7 +284,8 @@ meta["count"].from_source       # 'cli'
 parser = build_parser(params, prog="fetch.py")
 ```
 
-`parse_params_from_config`, `parse_constraints`, `merge_params`,
+`parse_params_from_config`, `parse_constraints`, `compile_constraints`,
+`resolve_groups`, `validate_param_definitions`, `merge_params`,
 `params_to_dict`, `get_param_by_name`, `check_constraint` and
 `check_constraints` are also exported for building custom front-ends.
 
@@ -389,6 +394,75 @@ to `CliApp` and `register_action(..., registry=reg)` to keep multiple apps in on
 process from colliding on Action names. Omitting it keeps the classic
 `@register_action("name")` behaviour.
 
+### 4.9 Groups: declarative relations at scale
+
+`@name` is a **macro for a flat list of parameter names**. Groups are resolved at
+load time and compiled into ordinary `Constraint` objects — the runtime has no
+concept of a group. Three declaration layers, deliberately kept separate:
+
+| Layer | Where | Expresses |
+| --- | --- | --- |
+| one-to-one inline | inside `cli_args` | a relation between exactly two parameters |
+| **(a)** group-internal | `groups` with `true` | a relation among several params — a group is required |
+| **(b)** group ↔ third party | `groups` with a list | a group vs another group and/or a parameter |
+| top-level `constraints` | `constraints` | unchanged; keeps custom `message` / `include_generated` |
+
+```json
+{
+  "cli_args": {
+    "date":       { "type": "str" },
+    "start_date": { "type": "str", "together": "end_date" },
+    "end_date":   { "type": "str" },
+    "year":       { "type": "str" },
+    "window":     { "type": "str" }
+  },
+  "groups": {
+    "@sedate": ["start_date", "end_date"],
+    "@instant": ["date", "window"],
+    "@date_range": {
+      "members": ["@sedate", "year"],
+      "exclusive_with": ["@instant"]
+    },
+    "@dates": {
+      "members": ["@instant", "@date_range"],
+      "at_least_one": true
+    }
+  }
+}
+```
+
+Syntax rules:
+
+- **Inline relations are one-to-one**: the value is a single parameter name
+  (`"together": "end_date"`), never a list and never an `@group`. Unknown keys,
+  list values, a `group` key or any `@` reference inside a param definition are
+  **load-time errors** — a typo can never silently drop a relation.
+- **`groups` is the single source of truth** for membership and group-level
+  relations. A group is a **list** (pure members) or a **dict** (`members` plus
+  rules). `members` may nest other `@groups`; a parameter may belong to several
+  groups. Group cycles (including self-cycles), undefined groups and empty
+  groups are reported with the actual path.
+- **`true` = (a)**: one N-ary rule over the group's own members.
+- **a list = (b)**: the group's relation to a third party. Targets may mix
+  `@group` names and parameter names; the compiler expands them, drops the
+  subject itself, and emits one rule per member. `exclusive_with` / `requires`
+  are the natural fit.
+- **`@` expands everywhere**: `members`, relation targets and top-level
+  `constraints.params` / `group`. After expansion the result is always a flat
+  list of parameter names.
+- `at_least_one` is evaluated last: it is a fallback hint, and the engine
+  reports only the first violation.
+
+`CliApp(..., groups=...)` accepts the same `groups` dict when building from
+`Param` objects; `from_config()` reads it from the (optionally `mount`ed) config.
+
+**Common design mistake**: relating a parent group to its own child is
+contradictory after expansion — the members end up excluding each other. The
+library faithfully executes what you declare; how to partition groups and where
+to place a relation is the config author's decision. Put relations at a level
+where the two sides are disjoint. Conditions that depend on *values*,
+runtime-only parameters or external state still belong in an Action.
+
 ---
 
 ## 5. Execution pipeline and precedence
@@ -480,7 +554,7 @@ pytest tests -q
 
 Tests are split into `tests/unit/` (one file per module: base, actions, loader,
 parser, validator, executor, help, app, constraints, registry, source tracking,
-cycle detection, config integration) and `tests/integration/` (end-to-end fetch
+cycle detection, config integration, groups) and `tests/integration/` (end-to-end fetch
 workflows, complex chains, and `test_examples.py`, which executes every config
 under `examples/`). All error-message assertions are in English.
 

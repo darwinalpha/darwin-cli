@@ -1,0 +1,39 @@
+{
+  "prog": "09-groups.py",
+  "help": "Param relations are parameter-only; groups own membership and group relations",
+  "cli_args": {
+    "date": {
+      "type": "str",
+      "help": "Single date"
+    },
+    "start_date": {
+      "type": "str",
+      "together": "end_date",
+      "help": "Range start"
+    },
+    "end_date": {
+      "type": "str",
+      "help": "Range end"
+    },
+    "year": {
+      "type": "str",
+      "help": "Whole year"
+    },
+    "window": {
+      "type": "str",
+      "help": "Rolling window"
+    }
+  },
+  "groups": {
+    "@sedate": ["start_date", "end_date"],
+    "@instant": ["date", "window"],
+    "@date_range": {
+      "members": ["@sedate", "year"],
+      "exclusive_with": ["@instant"]
+    },
+    "@dates": {
+      "members": ["@instant", "@date_range"],
+      "at_least_one": true
+    }
+  }
+}

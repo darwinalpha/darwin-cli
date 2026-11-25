@@ -7,7 +7,7 @@ CliApp facade: ties all components together.
 import json
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from darwin_cli.actions import (
     ActionError,
@@ -22,8 +22,9 @@ from darwin_cli.base import CliResult, Constraint, Param
 from darwin_cli.executor import Executor
 from darwin_cli.help import HelpBuilder
 from darwin_cli.loader import (
+    compile_constraints,
     get_param_by_name,
-    parse_constraints,
+    param_definitions_from_objects,
     parse_params_from_config,
 )
 from darwin_cli.parser import parse_args_with_meta
@@ -49,10 +50,15 @@ class CliApp:
         custom_validators: Optional[Dict[str, Callable]] = None,
         available_sources: Optional[List[str]] = None,
         constraints: Optional[List[Union[Dict[str, Any], Constraint]]] = None,
+        groups: Optional[Dict[str, Any]] = None,
         registry: Optional[ActionRegistry] = None,
     ):
-        self._initial_params = self._normalize_params(params)
-        self._initial_constraints = parse_constraints(constraints or [])
+        self._initial_params, param_definitions = self._normalize_params(params)
+        self._initial_constraints = compile_constraints(
+            definitions=param_definitions,
+            groups=groups or {},
+            constraints=constraints or [],
+        )
 
         self.prog = prog
         self.description = help or description or ""
@@ -112,12 +118,14 @@ class CliApp:
         description = help or (data.get("help") if isinstance(data, dict) else None)
         params_section = data.get("cli_args", data.get("params", {})) if isinstance(data, dict) else {}
         constraints_section = data.get("constraints", []) if isinstance(data, dict) else []
+        groups_section = data.get("groups", {}) if isinstance(data, dict) else {}
 
         return cls(
             params=params_section,
             prog=prog or (data.get("prog") if isinstance(data, dict) else None),
             help=description,
             constraints=constraints_section,
+            groups=groups_section,
             **kwargs,
         )
 
@@ -128,14 +136,15 @@ class CliApp:
     def _normalize_params(
         self,
         params: Union[List[Param], Dict[str, Dict[str, Any]]],
-    ) -> List[Param]:
+    ) -> Tuple[List[Param], Dict[str, Dict[str, Any]]]:
+        """Return the Param list plus a uniform mapping for the compiler."""
         if isinstance(params, list):
             for p in params:
                 if not isinstance(p, Param):
                     raise TypeError(f"params elements must be Param, got {type(p)}")
-            return params
+            return params, param_definitions_from_objects(params)
         if isinstance(params, dict):
-            return parse_params_from_config(params)
+            return parse_params_from_config(params), params
         raise TypeError(f"params must be List[Param] or dict, got {type(params)}")
 
     # ============================================================

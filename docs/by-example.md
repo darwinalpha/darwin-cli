@@ -353,6 +353,63 @@ Without `registry`, the global registry is used and the classic
 
 ---
 
+## Example 11: groups — relations among many parameters
+
+Five rules are enough for a handful of params, but writing a top-level
+`constraints` entry for every pair gets noisy. `groups` lets you name a set of
+parameters once and relate sets to each other:
+
+```json
+{
+  "cli_args": {
+    "date":       { "type": "str" },
+    "start_date": { "type": "str", "together": "end_date" },
+    "end_date":   { "type": "str" },
+    "year":       { "type": "str" },
+    "window":     { "type": "str" }
+  },
+  "groups": {
+    "@sedate": ["start_date", "end_date"],
+    "@instant": ["date", "window"],
+    "@date_range": {
+      "members": ["@sedate", "year"],
+      "exclusive_with": ["@instant"]
+    },
+    "@dates": {
+      "members": ["@instant", "@date_range"],
+      "at_least_one": true
+    }
+  }
+}
+```
+
+- `@sedate` / `@instant` are pure member lists; `@date_range` nests `@sedate`,
+  and `@dates` nests both — groups are macros for **flat parameter-name lists**.
+- `start_date.together: "end_date"` is a **one-to-one** inline relation. Inline
+  values are a single parameter name, never a list, never an `@group`.
+- `@date_range.exclusive_with: ["@instant"]` is a **group ↔ group** relation: a
+  date range cannot be mixed with a single date/window, but the range's own
+  members can still appear together.
+- `@dates.at_least_one: true` is a **group-internal** rule: at least one date
+  input must be given.
+
+Everything compiles to 5 plain `Constraint` objects, so the runtime needs no
+notion of a group. `CliApp(..., groups=...)` works with `Param` objects too, and
+misspelled keys / group names, cycles and empty groups fail at load time rather
+than silently disabling a rule.
+
+**Is this optimal?** Yes for structural relationships: one declaration replaces
+a web of pairwise rules. For conditions that depend on *values*
+(`source == "file"` implies `path`), an Action is still the right tool.
+
+> **Design mistake to avoid**: relating a parent group to its own child
+> (`@dates` excluding `@date_range`) is contradictory after expansion — the
+> members end up excluding each other and the group's own `together` rule breaks.
+> Place relations where the two sides are disjoint; that is the config author's
+> decision, not something the library second-guesses.
+
+---
+
 ## What changed compared with the old library
 
 | Item | Old | New |

@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from darwin_cli import ActionRegistry, CliApp
+from darwin_cli import ActionRegistry, CliApp, Constraint
 from darwin_cli.loader import KNOWN_RULES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +33,7 @@ SAMPLE_NAMES = [
     "06-depends.json",
     "07-help.json",
     "08-mount.json",
+    "09-groups.json",
 ]
 
 
@@ -343,3 +344,47 @@ class Test08Mount:
         result, _ = run(app, ["--type", "stock_daily", "--output", "a.csv", "--stdout"])
         assert result.outcome == "error"
         assert "mutually exclusive" in result.error
+
+
+# ============================================================
+# 09 Groups (declarative relations)
+# ============================================================
+
+
+class Test09Groups:
+    @pytest.mark.parametrize(
+        ("argv", "expected"),
+        [
+            (["--date", "d"], "ok"),
+            (["--start_date", "s", "--end_date", "e"], "ok"),
+            (["--date", "d", "--start_date", "s", "--end_date", "e"], "error"),
+            (["--year", "2026"], "ok"),
+            (["--year", "2026", "--date", "d"], "error"),
+            (["--year", "2026", "--start_date", "s", "--end_date", "e"], "ok"),
+            (["--start_date", "s"], "error"),
+            (["--window", "7", "--date", "d"], "ok"),
+            (["--window", "7", "--start_date", "s", "--end_date", "e"], "error"),
+            ([], "error"),
+        ],
+    )
+    def test_scenarios(self, registry, argv, expected):
+        result, _ = run(make_app("09-groups.json", registry), argv)
+        assert result.outcome == expected
+
+    def test_compilation_is_flat(self, registry):
+        """Groups are a load-time macro: runtime sees only plain Constraints."""
+        app = make_app("09-groups.json", registry)
+        constraints = app._initial_constraints
+        assert len(constraints) == 5
+        assert all(isinstance(c, Constraint) for c in constraints)
+        assert all("@" not in str(c.params) + str(c.group) for c in constraints)
+        assert constraints[-1].rule == "at_least_one"
+
+    def test_exclusive_with_message_has_no_self(self, registry):
+        result, _ = run(
+            make_app("09-groups.json", registry),
+            ["--window", "7", "--start_date", "s", "--end_date", "e"],
+        )
+        assert result.outcome == "error"
+        assert "is exclusive with ['window']" in result.error
+        assert "['start_date'" not in result.error

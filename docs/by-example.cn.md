@@ -309,6 +309,56 @@ app = CliApp(
 
 ---
 
+## 案例 11：用 group 表达成组关系
+
+参数少时五条规则够用，但参数一多，为每一对都写一条顶层 `constraints` 会很啰嗦。
+`groups` 让你给一组参数起一次名字，然后直接表达组与组之间的关系：
+
+```json
+{
+  "cli_args": {
+    "date":       { "type": "str" },
+    "start_date": { "type": "str", "together": "end_date" },
+    "end_date":   { "type": "str" },
+    "year":       { "type": "str" },
+    "window":     { "type": "str" }
+  },
+  "groups": {
+    "@sedate": ["start_date", "end_date"],
+    "@instant": ["date", "window"],
+    "@date_range": {
+      "members": ["@sedate", "year"],
+      "exclusive_with": ["@instant"]
+    },
+    "@dates": {
+      "members": ["@instant", "@date_range"],
+      "at_least_one": true
+    }
+  }
+}
+```
+
+- `@sedate` / `@instant` 是纯成员列表；`@date_range` 嵌套了 `@sedate`，
+  `@dates` 又嵌套了两个组——group 就是**扁平参数名列表的宏**。
+- `start_date.together: "end_date"` 是**一对一**内联关系。内联值只能是单个
+  参数名，不能是列表，也不能是 `@group`。
+- `@date_range.exclusive_with: ["@instant"]` 是 **group ↔ group** 关系：区间
+  不能和单日/窗口混用，但区间内部成员仍可同时出现。
+- `@dates.at_least_one: true` 是**组内规则**：至少要给一个日期类输入。
+
+这些声明最终编译成 5 条普通 `Constraint`，运行时完全不需要"组"这个概念。
+`CliApp(..., groups=...)` 配合 `Param` 对象同样可用；拼错的字段名/组名、环、
+空组都会在构造 app 时报错，不会悄悄让规则失效。
+
+**是否最优？** 结构性关系上是的：一条声明替代一堆两两规则。若条件依赖**取值**
+（`source == "file"` 时必须有 `path`），仍然该用 Action。
+
+> **要避开的设计误区**：把父组和自己的子组建立排斥关系（` @dates ` 排斥
+> ` @date_range `），展开后会自相矛盾——成员彼此成了排斥目标，组内 `together`
+> 也被破坏。关系要写在两侧不相交的层级上，这是配置作者的设计决定，库不替你判断。
+
+---
+
 ## 这次相对旧库改了什么
 
 | 项 | 旧库 | 新库 |

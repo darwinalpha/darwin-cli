@@ -25,6 +25,7 @@ python examples/demo.py
 | 06 | `configs/06-depends.json` | `depends_on` reorders processing; `ActionResult(values=...)` expands one input | `--year 2026` |
 | 07 | `configs/07-help.json` | Context-aware help: bare `--help` vs scenario help after inference | `--type stock_daily --help` |
 | 08 | `configs/08-mount.json` | `mount` selects a sub-tree; defaults do not trigger constraints | `--type stock_daily --output a.csv --stdout` |
+| 09 | `configs/09-groups.json` | Nested groups, one-to-one inline relations, group↔group / group↔param rules | `--date d` |
 
 `actions.py` holds the four Action functions used by configs 02/03/06/07.
 Call `actions.register_all()` (or `register_all(registry)`) before building an
@@ -60,6 +61,10 @@ app; it is idempotent, so it is safe to call after `clear_actions()`.
   building from a Python dict. JSON cannot express callables, so use names.
 - `validation` / a dict-valued `type` becomes a `ValidationRule`.
 - `constraints` is optional; see the five rules in the main README.
+- `groups` is optional; it declares nested parameter groups and their relations
+  (see section 4.9 of the main README, and `configs/09-groups.json`).
+- Param inline relations are one-to-one: a single parameter name, never a list
+  and never an `@group` reference.
 - `prog` / `help` are optional and feed the generated help text.
 
 ## Three equivalent ways to declare params

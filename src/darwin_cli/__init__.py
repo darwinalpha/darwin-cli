@@ -41,11 +41,17 @@ from darwin_cli.base import (
 )
 from darwin_cli.constraints import check_constraint, check_constraints
 from darwin_cli.loader import (
+    KNOWN_PARAM_KEYS,
+    RELATION_RULES,
+    compile_constraints,
     get_param_by_name,
     merge_params,
+    param_definitions_from_objects,
     params_to_dict,
     parse_constraints,
     parse_params_from_config,
+    resolve_groups,
+    validate_param_definitions,
 )
 from darwin_cli.parser import build_parser, parse_args_with_meta
 from darwin_cli.validator import Validator, create_validator
@@ -76,6 +82,12 @@ __all__ = [
     # config helpers
     "parse_params_from_config",
     "parse_constraints",
+    "compile_constraints",
+    "resolve_groups",
+    "validate_param_definitions",
+    "param_definitions_from_objects",
+    "KNOWN_PARAM_KEYS",
+    "RELATION_RULES",
     "merge_params",
     "params_to_dict",
     "get_param_by_name",
