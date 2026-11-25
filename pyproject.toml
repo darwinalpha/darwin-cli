@@ -1,10 +1,10 @@
 [project]
 name = "darwin-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Declaration-driven CLI engine with dynamic params, dependency inference and config-file constraints"
 readme = "README.md"
 authors = [
-    { name = "darwinalpha", email = "13301807038@126.com" }
+    { name = "Hong", email = "sardineclub@126.com" }
 ]
 requires-python = ">=3.10"
 dependencies = []
