@@ -115,12 +115,12 @@ the release failed later.
 
 ```toml
 # pyproject.toml
-version = "0.2.2"
+version = "0.3.0"
 ```
 
 ```python
 # src/darwin_cli/__init__.py
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 ```
 
 These are the only two version literals in the library; README, tests and
@@ -135,7 +135,7 @@ uv run --extra test python -m pytest tests -q
 # equivalently: pip install -e '.[test]' && pytest tests -q
 ```
 
-Expect `300 passed, 1 skipped` (the count grows as features are added). Do not
+Expect `379 passed, 1 skipped` (the count grows as features are added). Do not
 release on a red suite.
 
 > `uv run --extra test` resolves pytest on first use and therefore needs
@@ -147,7 +147,7 @@ release on a red suite.
 
 ```bash
 git add pyproject.toml src/darwin_cli/__init__.py
-git commit -m "Bump version to 0.2.2"
+git commit -m "Bump version to 0.3.0"
 git push origin main
 ```
 
@@ -158,8 +158,8 @@ identifiable.
 ### Step 4 — Create and push the tag (the trigger)
 
 ```bash
-git tag -a v0.2.2 -m "Release v0.2.2"
-git push origin v0.2.2
+git tag -a v0.3.0 -m "Release v0.3.0"
+git push origin v0.3.0
 ```
 
 Keep these as **two separate commands**. If a sandboxed command is re-run, a
@@ -198,7 +198,7 @@ Actions web page instead, or wait for the quota window to reset.
 ### Step 6 — Verify on PyPI
 
 ```bash
-curl -s "https://pypi.org/pypi/darwin-cli/0.2.2/json?ts=$RANDOM" \
+curl -s "https://pypi.org/pypi/darwin-cli/0.3.0/json?ts=$RANDOM" \
   | python -c "
 import sys,json
 d=json.load(sys.stdin); i=d['info']
@@ -206,20 +206,20 @@ print(i['name'], i['version'], i['requires_python'], i.get('author'))
 print([u['filename'] for u in d['urls']])
 "
 curl -s -o /dev/null -w "project_page=%{http_code}\n" \
-  "https://pypi.org/project/darwin-cli/0.2.2/?ts=$RANDOM"
-uv run --no-project --refresh --with darwin-cli==0.2.2 \
+  "https://pypi.org/project/darwin-cli/0.3.0/?ts=$RANDOM"
+uv run --no-project --refresh --with darwin-cli==0.3.0 \
   python -c "import darwin_cli; print(darwin_cli.__version__)"
 ```
 
 Use `--refresh`: uv caches the simple index, so a fresh upload can otherwise
-look like "no version of darwin-cli==0.2.2".
+look like "no version of darwin-cli==0.3.0".
 
 ---
 
 ## 3. Copy-paste checklist
 
 ```bash
-VERSION=0.2.2
+VERSION=0.3.0
 
 # 0. confirm a clean tree and that PyPI has no such version yet
 git status -sb
@@ -344,7 +344,7 @@ Notes:
   version → tag again**. Re-running a failed job is only meaningful when the
   upload itself never happened.
 - Keep `version` and `__version__` in lockstep, and bump both in one commit.
-- Tags are `v` + the exact version (`v0.2.2`, not `0.2.2` or `release-0.2.2`).
+- Tags are `v` + the exact version (`v0.3.0`, not `0.3.0` or `release-0.3.0`).
 
 ---
 
@@ -355,6 +355,8 @@ Notes:
 | 0.1.0 | `1336630` | `45621266223` (#1) | Failed at `uv publish` — publisher not registered; released via local token |
 | 0.2.0 | `195b627` | `45623196668` (#2) | Failed the same way; released via local token. Also added author metadata |
 | 0.2.1 | `c789168` | `45625338874` (#3) | **SUCCESS** — publisher registered; first fully automatic OIDC release |
+| 0.2.2 | `1d00557` | `45628508708` (#4) | SUCCESS — first release carried out end-to-end by following this guide |
+| 0.3.0 | `f5fd4c2` | `45658151352` (#5) | SUCCESS — declarative groups compiler with nested group references |
 
 The 0.2.1 upload timestamps on PyPI match the workflow's step-5 timestamp,
 which is a useful way to prove a release came from CI rather than a local

@@ -107,12 +107,12 @@ curl -s "https://pypi.org/pypi/darwin-cli/json?ts=$RANDOM" \
 
 ```toml
 # pyproject.toml
-version = "0.2.2"
+version = "0.3.0"
 ```
 
 ```python
 # src/darwin_cli/__init__.py
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 ```
 
 全库只有这两处版本字面量；README、测试、`examples/` 都没有硬编码版本号。
@@ -126,7 +126,7 @@ uv run --extra test python -m pytest tests -q
 # 等价写法：pip install -e '.[test]' && pytest tests -q
 ```
 
-预期 `300 passed, 1 skipped`（随功能增加会变多）。测试红了不要发版。
+预期 `379 passed, 1 skipped`（随功能增加会变多）。测试红了不要发版。
 
 > `uv run --extra test` 首次使用需要联网解析 pytest。若处于离线环境，任何已装
 > pytest 的环境都可以（`python -m pytest tests -q`）——本库本身没有第三方运行时
@@ -136,7 +136,7 @@ uv run --extra test python -m pytest tests -q
 
 ```bash
 git add pyproject.toml src/darwin_cli/__init__.py
-git commit -m "Bump version to 0.2.2"
+git commit -m "Bump version to 0.3.0"
 git push origin main
 ```
 
@@ -146,8 +146,8 @@ git push origin main
 ### 第 4 步 — 创建并推送 tag（唯一的触发点）
 
 ```bash
-git tag -a v0.2.2 -m "Release v0.2.2"
-git push origin v0.2.2
+git tag -a v0.3.0 -m "Release v0.3.0"
+git push origin v0.3.0
 ```
 
 **务必拆成两条命令**。在沙箱环境里命令可能被重跑，若写成
@@ -184,7 +184,7 @@ for j in d.get('jobs',[]):
 ### 第 6 步 — 在 PyPI 上验证
 
 ```bash
-curl -s "https://pypi.org/pypi/darwin-cli/0.2.2/json?ts=$RANDOM" \
+curl -s "https://pypi.org/pypi/darwin-cli/0.3.0/json?ts=$RANDOM" \
   | python -c "
 import sys,json
 d=json.load(sys.stdin); i=d['info']
@@ -192,20 +192,20 @@ print(i['name'], i['version'], i['requires_python'], i.get('author'))
 print([u['filename'] for u in d['urls']])
 "
 curl -s -o /dev/null -w "project_page=%{http_code}\n" \
-  "https://pypi.org/project/darwin-cli/0.2.2/?ts=$RANDOM"
-uv run --no-project --refresh --with darwin-cli==0.2.2 \
+  "https://pypi.org/project/darwin-cli/0.3.0/?ts=$RANDOM"
+uv run --no-project --refresh --with darwin-cli==0.3.0 \
   python -c "import darwin_cli; print(darwin_cli.__version__)"
 ```
 
 一定要加 `--refresh`：uv 会缓存 simple index，刚上传的包否则会报
-"no version of darwin-cli==0.2.2"。
+"no version of darwin-cli==0.3.0"。
 
 ---
 
 ## 3. 可复制的速查清单
 
 ```bash
-VERSION=0.2.2
+VERSION=0.3.0
 
 # 0. 确认工作区干净，且 PyPI 上还没有这个版本
 git status -sb
@@ -324,7 +324,7 @@ PY
 - 因此几乎所有失败的恢复动作都是：**修好根因 → 递增版本 → 重新打 tag**。
   只有确认上传压根没发生时，Re-run 失败 job 才有意义。
 - `version` 与 `__version__` 保持同步，且在同一个提交里一起递增。
-- tag 格式是 `v` + 精确版本号（`v0.2.2`，不是 `0.2.2` 或 `release-0.2.2`）。
+- tag 格式是 `v` + 精确版本号（`v0.3.0`，不是 `0.3.0` 或 `release-0.3.0`）。
 
 ---
 
@@ -335,6 +335,8 @@ PY
 | 0.1.0 | `1336630` | `45621266223`（#1） | `uv publish` 失败 —— publisher 未注册；改用本地 token 发布 |
 | 0.2.0 | `195b627` | `45623196668`（#2） | 同样失败；改用本地 token 发布。同时补充了作者信息 |
 | 0.2.1 | `c789168` | `45625338874`（#3） | **成功** —— publisher 已注册，首次全自动 OIDC 发版 |
+| 0.2.2 | `1d00557` | `45628508708`（#4） | 成功 —— 首次按本指南完整实跑 |
+| 0.3.0 | `f5fd4c2` | `45658151352`（#5） | 成功 —— 新增声明式 groups 编译器（支持嵌套组引用） |
 
 0.2.1 在 PyPI 上的上传时间戳与工作流第 5 步时间戳吻合，这是判断"这次发布
 来自 CI 而不是本地 token"的一个实用证据。从 0.2.1 起，只需按第 2 节的标准
