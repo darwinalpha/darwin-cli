@@ -222,5 +222,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# ai
+# develop
 .workbuddy
