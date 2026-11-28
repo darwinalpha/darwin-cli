@@ -1,6 +1,6 @@
 # darwin-cli
 
-[English](README.md) · 简体中文
+[English](https://github.com/darwinalpha/darwin-cli/blob/main/README.md) · 简体中文
 
 **声明驱动的命令行参数引擎**：参数不是"等待填值的空位"。它们可以计算取值、推断别的参数、在运行时声明新参数、彼此之间建立关系约束——而且这些都可以只写在配置文件里。
 

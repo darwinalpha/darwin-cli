@@ -1,6 +1,6 @@
 [project]
 name = "darwin-cli"
-version = "0.3.0"
+version = "0.3.1"
 description = "Declaration-driven CLI engine with dynamic params, dependency inference and config-file constraints"
 readme = "README.md"
 authors = [
@@ -8,6 +8,9 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = []
+
+[project.urls]
+"Chinese Documentation" = "https://github.com/darwinalpha/darwin-cli/blob/main/README.cn.md"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]

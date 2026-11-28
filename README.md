@@ -1,6 +1,6 @@
 # darwin-cli
 
-[English](README.md) · [简体中文](README.cn.md)
+[English](https://github.com/darwinalpha/darwin-cli/blob/main/README.md) · [简体中文](https://github.com/darwinalpha/darwin-cli/blob/main/README.cn.md)
 
 A **declaration-driven CLI engine**: parameters are not passive slots waiting
 for a value. They can compute values, infer other parameters, declare new
